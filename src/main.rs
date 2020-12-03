@@ -1,22 +1,12 @@
-extern crate env_logger;
-#[macro_use]
-extern crate log;
-
-mod error;
 use crate::error::PeachProbeParseError;
 
-#[macro_use]
-extern crate jsonrpc_client_core;
-extern crate jsonrpc_client_http;
-
-#[macro_use]
-extern crate serde_derive;
-
+mod error;
 mod stats_probe;
-mod stats_client;
 
-use structopt::StructOpt;
+use log::info;
+
 use std::str::FromStr;
+use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -28,15 +18,15 @@ struct Opt {
     #[structopt(short, long)]
     verbose: bool,
     // optional list of microservices to filter down to
-    services: Vec<Microservice>
+    services: Vec<Microservice>,
 }
 
 #[derive(StructOpt, Debug)]
-enum Microservice{
+enum Microservice {
     Oled,
     Network,
     Stats,
-    Menu
+    Menu,
 }
 
 impl FromStr for Microservice {
@@ -48,14 +38,12 @@ impl FromStr for Microservice {
             "stats" => Ok(Microservice::Stats),
             "menu" => Ok(Microservice::Menu),
             // due to lifetime questions, wasn't sure how to include the &str in the error
-            _ => Err(PeachProbeParseError::InvalidMicroservice{ arg: s.to_string()})
+            _ => Err(PeachProbeParseError::InvalidMicroservice { arg: s.to_string() }),
         }
     }
 }
 
-
 fn main() {
-
     // initialize the logger
     env_logger::init();
 
@@ -74,19 +62,23 @@ fn main() {
     let services;
     // if not arguments were provided, then we probe all services
     if opt.services.len() == 0 {
-        services = vec![Microservice::Network, Microservice::Oled, Microservice::Stats]
+        services = vec![
+            Microservice::Network,
+            Microservice::Oled,
+            Microservice::Stats,
+        ]
     } else {
         services = opt.services;
     }
 
     // iterate through services and run probe tests on them
     for service in services {
-       info!("probing service: {:?}", service);
+        info!("probing service: {:?}", service);
         match service {
             Microservice::Stats => {
                 stats_probe::probe_stats();
             }
-            _ => info!("probe for service {:?} not yet implemented", service)
+            _ => info!("probe for service {:?} not yet implemented", service),
         }
     }
 }

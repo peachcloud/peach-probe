@@ -702,6 +702,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "peach-lib"
+version = "1.0.1"
+source = "git+https://github.com/peachcloud/peach-lib?branch=main#fa922501617574702115362f26552e99ff09da62"
+dependencies = [
+ "jsonrpc-client-core",
+ "jsonrpc-client-http",
+ "log 0.4.11",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
 name = "peach-probe"
 version = "0.1.0"
 dependencies = [
@@ -711,6 +724,7 @@ dependencies = [
  "jsonrpc-core 14.2.0",
  "jsonrpc-test",
  "log 0.4.11",
+ "peach-lib",
  "serde",
  "serde_derive",
  "serde_json",

@@ -1,5 +1,5 @@
-
-use crate::stats_client;
+use log::{info, warn};
+use peach_lib::stats_client;
 
 pub fn probe_stats() {
     info!("++ probing stats microservice");
@@ -8,7 +8,7 @@ pub fn probe_stats() {
     let cpu_stats_percent = stats_client::cpu_stats_percent();
     match cpu_stats_percent {
         Ok(_x) => info!("++ peach-stats cpu_stats_percent endpoint is online"),
-        Err(_x) => warn!("++ peach-stats cpu_stats_percent is offline")
+        Err(_x) => warn!("++ peach-stats cpu_stats_percent is offline"),
     }
 
     // cpu_stats_percent
@@ -16,7 +16,7 @@ pub fn probe_stats() {
     match disk_usage {
         Ok(_x) => info!("++ peach-stats disk_usage endpoint is online"),
         // could include  more detailed info about the specific error here below
-        Err(_x) => warn!("++ peach-stats disk_usage endpoint is offline")
+        Err(_x) => warn!("++ peach-stats disk_usage endpoint is offline"),
     }
 
     // questions:
