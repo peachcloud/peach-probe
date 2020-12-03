@@ -1,12 +1,13 @@
-use crate::error::PeachProbeParseError;
-
 mod error;
-mod stats_probe;
-
-use log::info;
+mod probe;
 
 use std::str::FromStr;
+
+use log::info;
 use structopt::StructOpt;
+
+use crate::error::PeachProbeParseError;
+use crate::probe::PeachProbe;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -61,7 +62,7 @@ fn main() {
 
     let services;
     // if not arguments were provided, then we probe all services
-    if opt.services.len() == 0 {
+    if opt.services.is_empty() {
         services = vec![
             Microservice::Network,
             Microservice::Oled,
@@ -71,14 +72,27 @@ fn main() {
         services = opt.services;
     }
 
+    // instantiate the probe
+    let mut peach_probe: PeachProbe = PeachProbe::new();
+
     // iterate through services and run probe tests on them
     for service in services {
         info!("probing service: {:?}", service);
         match service {
             Microservice::Stats => {
-                stats_probe::probe_stats();
+                //stats_probe::probe_stats();
+                peach_probe.stats();
             }
             _ => info!("probe for service {:?} not yet implemented", service),
         }
+    }
+
+    // reporting
+    for result in peach_probe.results {
+        println!("{}", result.microservice);
+        // success
+        println!("{} successful endpoint calls", result.success);
+        // failure
+        println!("{} failed endpoint calls", result.failure);
     }
 }
