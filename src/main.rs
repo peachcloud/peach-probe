@@ -1,52 +1,33 @@
 use log::info;
-use std::str::FromStr;
-use const_format::formatcp;
 
 use structopt::StructOpt;
+use clap::arg_enum;
 
-mod error;
 mod probe;
-use crate::error::PeachProbeParseError;
 use crate::probe::PeachProbe;
 
 
-// list of microservices allowed as arguments
-pub const POSSIBLE_MICROSERVICE_ARGS:&str = "menu, network, oled, stats";
-
 #[derive(StructOpt, Debug)]
-#[structopt(
-    name = "peach-probe",
-    about = "a CLI tool for contract testing of the public API's exposed by PeachCloud microservices"
-)]
-pub struct Opt {
-    /// switch on verbosity
-    #[structopt(short, long)]
-    verbose: bool,
-    #[structopt(help = formatcp!("an optional list of microservices to probe [possible values: {}]", POSSIBLE_MICROSERVICE_ARGS))]
-    services: Vec<Microservice>,
-}
+ #[structopt(
+     name = "peach-probe",
+     about = "a CLI tool for contract testing of the public API's exposed by PeachCloud microservices"
+ )]
+ struct Opt {
+     #[structopt(short, long)]
+     verbose: bool,
+     #[structopt(possible_values = &Microservice::variants(), case_insensitive = true)]
+     services: Vec<Microservice>,
+ }
 
-#[derive(StructOpt, Debug)]
-pub enum Microservice {
-    Oled,
-    Network,
-    Stats,
-    Menu,
-}
-
-impl FromStr for Microservice {
-    type Err = PeachProbeParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "oled" => Ok(Microservice::Oled),
-            "network" => Ok(Microservice::Network),
-            "stats" => Ok(Microservice::Stats),
-            "menu" => Ok(Microservice::Menu),
-            _ => Err(PeachProbeParseError::InvalidMicroservice { arg: s.to_string() }),
-        }
-    }
-}
-
+ arg_enum! {
+     #[derive(Debug)]
+     enum Microservice {
+         Oled,
+         Network,
+         Stats,
+         Menu,
+     }
+ }
 
 fn main() {
     // initialize the logger
@@ -87,13 +68,17 @@ fn main() {
         }
     }
 
-    // reporting
-    println!("[ generating probe report ]");
+    // final report of how many microservices returned successes and failures
+    println!("[ generating report ]");
     for result in peach_probe.results {
-        println!("{}", result.microservice);
-        // success
-        println!("{} successful endpoint calls", result.success);
-        // failure
-        println!("{} failed endpoint calls", result.failure);
+        let num_failures = result.failures.len();
+        let report;
+        if num_failures == 0 {
+            report = format!("++ {} microservice is online with no errors.", result.microservice);
+            println!("{}", report);
+        } else {
+            report = format!("++ {} microservice had {} endpoints that returned errors: {:?}", result.microservice, num_failures, result.failures);
+            eprintln!("{}", report);
+        }
     }
 }
