@@ -1,5 +1,9 @@
 use peach_lib::error::StatsError;
 use peach_lib::stats_client;
+use peach_lib::oled_client;
+use peach_lib::error::OledError;
+
+use crate::vars::PEACH_LOGO;
 
 pub struct ProbeResult {
     pub microservice: String,
@@ -31,8 +35,9 @@ impl PeachProbe {
         }
     }
 
-    fn probe_endpoint(endpoint_fn: fn() -> Result<stats_client::CpuStatPercentages, StatsError>, endpoint_name: &str, result: &mut ProbeResult) {
-        match endpoint_fn() {
+    /// helper function for probing an endpoint on the stats microfunction and collecting errors for a final report
+    fn probe_stats_endpoint<T>(endpoint_result: Result<T, StatsError>, endpoint_name: &str, result: &mut ProbeResult) {
+        match endpoint_result {
             Ok(_) => {
                 println!("++ {} endpoint is online", endpoint_name);
                 result.successes.push(endpoint_name.to_string());
@@ -49,7 +54,7 @@ impl PeachProbe {
         }
     }
 
-
+    /// probes all endpoints on the stats microservice
     pub fn stats(&mut self) {
         println!("[ probing stats microservice ]");
 
@@ -57,59 +62,61 @@ impl PeachProbe {
         let mut result = ProbeResult::new("stats".to_string());
 
         // probe endpoints
-        PeachProbe::probe_endpoint(stats_client::cpu_stats_percent, "cpu_stats_percent", &mut result);
+        PeachProbe::probe_stats_endpoint(stats_client::cpu_stats_percent(), "cpu_stats_percent", &mut result);
+        PeachProbe::probe_stats_endpoint(stats_client::load_average(), "load_average", &mut result);
+        PeachProbe::probe_stats_endpoint(stats_client::disk_usage(), "disk_usage", &mut result);
+        PeachProbe::probe_stats_endpoint(stats_client::mem_stats(), "mem_stats", &mut result);
+        PeachProbe::probe_stats_endpoint(stats_client::ping(), "ping", &mut result);
+        PeachProbe::probe_stats_endpoint(stats_client::uptime(), "uptime", &mut result);
 
-        // cpu_stats_percent
-        match stats_client::cpu_stats_percent() {
+        // save result
+        self.results.push(result)
+    }
+
+    /// helper function for probing an endpoint on the oled microfunction and collecting errors for a final report
+    fn probe_oled_endpoint<T>(endpoint_result: Result<T, OledError>, endpoint_name: &str, result: &mut ProbeResult) {
+        match endpoint_result {
             Ok(_) => {
-                println!("++ cpu_stats_percent endpoint is online");
-                result.successes.push("cpu_stats_percent".to_string());
+                println!("++ {} endpoint is online", endpoint_name);
+                result.successes.push(endpoint_name.to_string());
             }
             Err(e) => {
-                eprintln!("++ cpu_stats_percent is offline");
+                eprintln!("++ {} endpoint is offline", endpoint_name);
                 match e {
-                    StatsError::StatsHttp(e) => eprintln!("Returned error: {:?}\n", e.description()),
-                    StatsError::StatsClient(e) => eprintln!("Returned error: {:?}\n", e.description()),
+                    OledError::OledHttp(e) => eprintln!("Returned error: {:?}\n", e.description()),
+                    OledError::OledClient(e) => eprintln!("Returned error: {:?}\n", e.description()),
                     _ => (),
                 }
-                result.failures.push("cpu_stats_percent".to_string());
+                result.failures.push(endpoint_name.to_string());
             }
         }
+    }
 
-        // cpu_stats_percent
-        match stats_client::load_average() {
-            Ok(_) => {
-                println!("++ disk_usage endpoint is online");
-                result.successes.push("disk_usage".to_string());
-            }
-            Err(e) => {
-                eprintln!("++ disk_usage endpoint is offline");
-                match e {
-                    StatsError::StatsHttp(e) => eprintln!("Returned error: {:?}\n", e.description()),
-                    StatsError::StatsClient(e) => eprintln!("Returned error: {:?}\n", e.description()),
-                    _ => (),
-                }
-                result.failures.push("disk_usage".to_string());
-            }
-        }
+    /// probes all endpoints on the oled microservice
+    pub fn oled(&mut self) {
+        println!("[ probing oled microservice ]");
 
-        // load_average
-        match stats_client::load_average() {
-            Ok(_) => {
-                println!("++ load_average endpoint is online");
-                result.successes.push("load_average".to_string());
-            }
-            Err(e) => {
-                eprintln!("++ load_average endpoint is offline");
-                match e {
-                    StatsError::StatsHttp(e) => eprintln!("Returned error: {:?}\n", e.description()),
-                    StatsError::StatsClient(e) => eprintln!("Returned error: {:?}\n", e.description()),
-                    _ => (),
-                }
-                result.failures.push("load_average".to_string());
-            }
-        }
+        // instantiate ProbeResult
+        let mut result = ProbeResult::new("oled".to_string());
 
+        // probe endpoints
+        PeachProbe::probe_oled_endpoint(oled_client::clear(), "clear", &mut result);
+        PeachProbe::probe_oled_endpoint(oled_client::ping(), "ping", &mut result);
+        PeachProbe::probe_oled_endpoint(oled_client::write(0, 0, "Running peach-probe", "6x8"), "write", &mut result);
+        PeachProbe::probe_oled_endpoint(oled_client::flush(), "flush", &mut result);
+
+        // probe draw endpoint
+        let bytes = PEACH_LOGO.to_vec();
+        PeachProbe::probe_oled_endpoint(
+            oled_client::draw(bytes, 64, 64, 32, 10),
+            "draw", &mut result);
+        oled_client::flush();
+
+        // test power off endpoint
+         PeachProbe::probe_oled_endpoint(oled_client::power(false), "power-off", &mut result);
+         PeachProbe::probe_oled_endpoint(oled_client::power(true), "power-on", &mut result);
+
+        // save result
         self.results.push(result)
     }
 }

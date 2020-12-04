@@ -4,6 +4,8 @@ use structopt::StructOpt;
 use clap::arg_enum;
 
 mod probe;
+mod vars;
+
 use crate::probe::PeachProbe;
 
 
@@ -61,9 +63,11 @@ fn main() {
     for service in services {
         match service {
             Microservice::Stats => {
-                //stats_probe::probe_stats();
                 peach_probe.stats();
-            }
+            },
+            Microservice::Oled => {
+                peach_probe.oled();
+            },
             _ => info!("probe for service {:?} not yet implemented", service),
         }
     }
@@ -74,7 +78,7 @@ fn main() {
         let num_failures = result.failures.len();
         let report;
         if num_failures == 0 {
-            report = format!("++ {} microservice is online with no errors.", result.microservice);
+            report = format!("++ {} microservice is online with all endpoints running: {:?}", result.microservice, result.successes);
             println!("{}", report);
         } else {
             report = format!("++ {} microservice had {} endpoints that returned errors: {:?}", result.microservice, num_failures, result.failures);
