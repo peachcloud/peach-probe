@@ -1,29 +1,33 @@
-mod error;
-mod probe;
-
-use std::str::FromStr;
-
 use log::info;
+use std::str::FromStr;
+use const_format::formatcp;
+
 use structopt::StructOpt;
 
+mod error;
+mod probe;
 use crate::error::PeachProbeParseError;
 use crate::probe::PeachProbe;
+
+
+// list of microservices allowed as arguments
+pub const POSSIBLE_MICROSERVICE_ARGS:&str = "menu, network, oled, stats";
 
 #[derive(StructOpt, Debug)]
 #[structopt(
     name = "peach-probe",
     about = "a CLI tool for contract testing of the public API's exposed by PeachCloud microservices"
 )]
-struct Opt {
+pub struct Opt {
     /// switch on verbosity
     #[structopt(short, long)]
     verbose: bool,
-    // optional list of microservices to filter down to
+    #[structopt(help = formatcp!("an optional list of microservices to probe [possible values: {}]", POSSIBLE_MICROSERVICE_ARGS))]
     services: Vec<Microservice>,
 }
 
 #[derive(StructOpt, Debug)]
-enum Microservice {
+pub enum Microservice {
     Oled,
     Network,
     Stats,
@@ -38,18 +42,15 @@ impl FromStr for Microservice {
             "network" => Ok(Microservice::Network),
             "stats" => Ok(Microservice::Stats),
             "menu" => Ok(Microservice::Menu),
-            // due to lifetime questions, wasn't sure how to include the &str in the error
             _ => Err(PeachProbeParseError::InvalidMicroservice { arg: s.to_string() }),
         }
     }
 }
 
+
 fn main() {
     // initialize the logger
     env_logger::init();
-
-    // hello
-    info!("Hello, world, its peach probe.");
 
     // parse cli arguments
     let opt = Opt::from_args();
@@ -77,7 +78,6 @@ fn main() {
 
     // iterate through services and run probe tests on them
     for service in services {
-        info!("probing service: {:?}", service);
         match service {
             Microservice::Stats => {
                 //stats_probe::probe_stats();
@@ -88,6 +88,7 @@ fn main() {
     }
 
     // reporting
+    println!("[ generating probe report ]");
     for result in peach_probe.results {
         println!("{}", result.microservice);
         // success

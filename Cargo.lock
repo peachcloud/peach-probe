@@ -133,6 +133,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "const_format"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25f84a8cfc8f74c1deb4bd7b2a41a669cab38327679491a30e19266f349ceaa0"
+dependencies = [
+ "const_format_proc_macros",
+]
+
+[[package]]
+name = "const_format_proc_macros"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8df496e1bbc93814d728a8036ff054cd95830afe9cf2275c9326688c02eff936"
+dependencies = [
+ "proc-macro2 1.0.24",
+ "quote 1.0.7",
+ "unicode-xid 0.2.1",
+]
+
+[[package]]
 name = "crossbeam-deque"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -718,6 +738,8 @@ dependencies = [
 name = "peach-probe"
 version = "0.1.0"
 dependencies = [
+ "clap",
+ "const_format",
  "env_logger",
  "jsonrpc-client-core",
  "jsonrpc-client-http",

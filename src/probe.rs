@@ -1,5 +1,3 @@
-use log::{info, warn};
-
 use peach_lib::error::StatsError;
 use peach_lib::stats_client;
 
@@ -31,7 +29,7 @@ impl PeachProbe {
     }
 
     pub fn stats(&mut self) {
-        info!("++ probing stats microservice");
+        println!("[ probing stats microservice ]");
 
         // instantiate ProbeResult
         let mut result = ProbeResult::new("stats".to_string());
@@ -39,14 +37,14 @@ impl PeachProbe {
         // cpu_stats_percent
         match stats_client::cpu_stats_percent() {
             Ok(_) => {
-                info!("++ cpu_stats_percent endpoint is online");
+                println!("** cpu_stats_percent endpoint is online");
                 result.success += 1;
             }
             Err(e) => {
-                warn!("++ cpu_stats_percent is offline");
+                eprintln!("** cpu_stats_percent is offline");
                 match e {
-                    StatsError::StatsHttp(e) => warn!("{:?}", e.description()),
-                    StatsError::StatsClient(e) => warn!("{:?}", e.description()),
+                    StatsError::StatsHttp(e) => eprintln!("{:?}", e.description()),
+                    StatsError::StatsClient(e) => eprintln!("{:?}", e.description()),
                     _ => (),
                 }
                 result.failure += 1;
@@ -56,14 +54,14 @@ impl PeachProbe {
         // cpu_stats_percent
         match stats_client::disk_usage() {
             Ok(_) => {
-                info!("++ disk_usage endpoint is online");
+                println!("** disk_usage endpoint is online");
                 result.success += 1;
             }
             Err(e) => {
-                warn!("++ disk_usage endpoint is offline");
+                eprintln!("** disk_usage endpoint is offline");
                 match e {
-                    StatsError::StatsHttp(e) => warn!("{:?}", e.description()),
-                    StatsError::StatsClient(e) => warn!("{:?}", e.description()),
+                    StatsError::StatsHttp(e) => eprintln!("{:?}", e.description()),
+                    StatsError::StatsClient(e) => eprintln!("{:?}", e.description()),
                     _ => (),
                 }
                 result.failure += 1;
