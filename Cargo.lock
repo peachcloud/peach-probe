@@ -723,8 +723,8 @@ dependencies = [
 
 [[package]]
 name = "peach-lib"
-version = "1.0.1"
-source = "git+https://github.com/peachcloud/peach-lib?branch=peach-probe#d8283218eb89f03b4117ae69461b19738cbc65c3"
+version = "1.1.1"
+source = "git+https://github.com/peachcloud/peach-lib?branch=main#9ef43e1195a1ea1541403ef1aab3ff2a4f07dbaf"
 dependencies = [
  "jsonrpc-client-core",
  "jsonrpc-client-http",

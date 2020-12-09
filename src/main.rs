@@ -68,6 +68,9 @@ fn main() {
             Microservice::Oled => {
                 peach_probe.oled();
             },
+            Microservice::Network => {
+                peach_probe.network();
+            },
             _ => info!("probe for service {:?} not yet implemented", service),
         }
     }

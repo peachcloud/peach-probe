@@ -18,7 +18,7 @@ snafu = "0.4.1"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
-peach-lib = { git = "https://github.com/peachcloud/peach-lib", branch = "peach-probe" }
+peach-lib = { git = "https://github.com/peachcloud/peach-lib", branch = "main" }
 #peach-lib = { path = "../peach-lib" }
 clap = "2.33.3"
 const_format = "0.2.10"
