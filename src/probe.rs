@@ -45,10 +45,10 @@ impl PeachProbe {
             Err(e) => {
                 eprintln!("++ {} endpoint is offline", endpoint_name);
                 match e {
-                    PeachError::JsonRpcHttp(e) => eprintln!("Returned JsonRpcHTTP error: {:?}\n", e),
-                    PeachError::JsonRpcCore(e) => eprintln!("Returned JsonRpcCore error: {:?}\n", e),
+                    PeachError::JsonRpcHttp(e) => eprintln!("Returned JsonRpcHTTP error: {:#?}\n", e),
+                    PeachError::JsonRpcCore(e) => eprintln!("Returned JsonRpcCore error: {:#?}\n", e),
                     // QUESTION: PeachError::Serde does not implement .description -- should we show a message in another way?
-                    PeachError::Serde(_) => eprintln!("Returned Serde Json error\n")
+                    PeachError::Serde(_) => eprintln!("Returned Serde Json serialization error\n")
                 }
                 result.failures.push(endpoint_name.to_string());
             }
@@ -56,7 +56,7 @@ impl PeachProbe {
     }
 
     /// probes all endpoints on the peach-stats microservice
-    pub fn stats(&mut self) {
+    pub fn peach_stats(&mut self) {
         println!("[ probing peach-stats microservice ]");
 
         // instantiate ProbeResult
@@ -75,7 +75,7 @@ impl PeachProbe {
     }
 
     /// probes all endpoints on peach-network microservice
-    pub fn network(&mut self) {
+    pub fn peach_network(&mut self) {
         println!("[ probing peach-network microservice ]");
 
         // instantiate ProbeResult
@@ -87,70 +87,31 @@ impl PeachProbe {
         PeachProbe::probe_peach_endpoint(network_client::add("peach-probe-test-ssid", "peach-probe-test-pass"), "add", &mut result);
         PeachProbe::probe_peach_endpoint(network_client::available_networks("wlan0"), "available_networks", &mut result);
 
-        // these comments left here so I remember what else to probe, once above endpoints have been debugged
-//    /// JSON-RPC request to list all networks in range of the given interface.
-//    pub fn available_networks(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to connect the network for the given interface and ID.
-//    pub fn connect(&mut self, id: &str, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to delete the credentials for the given network from the wpa_supplicant config.
-//    pub fn delete(&mut self, id: &str, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to disable the network for the given interface and ID.
-//    pub fn disable(&mut self, id: &str, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to disconnect the network for the given interface.
-//    //pub fn disconnect(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to get the ID for the given interface and SSID.
-//    pub fn id(&mut self, iface: &str, ssid: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to get the IP address for the given interface.
-//    pub fn ip(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to set a new network password for the given interface and ID.
-//    //pub fn modify(&mut self, id: &str, iface: &str, pass: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to check peach-network availability.
-//    pub fn ping(&mut self) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to reread the wpa_supplicant config for the given interface.
-//    pub fn reconfigure(&mut self) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to reconnect WiFi for the given interface.
-//    //pub fn reconnect(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to get the average signal strength (dBm) for the given interface.
-//    pub fn rssi(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to get the average signal quality (%) for the given interface.
-//    pub fn rssi_percent(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to save network configuration updates to file.
-//    pub fn save(&mut self) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to list all networks saved in `wpa_supplicant.conf`.
-//    pub fn saved_networks(&mut self) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to get the SSID of the currently-connected network for the given interface.
-//    pub fn ssid(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to get the state for the given interface.
-//    pub fn state(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to get the status of the given interface.
-//    pub fn status(&mut self, iface: &str) -> RpcRequest<String>;
-//
-//    /// JSON-RPC request to get the network traffic for the given interface.
-//    pub fn traffic(&mut self, iface: &str) -> RpcRequest<String>;
+        PeachProbe::probe_peach_endpoint(network_client::connect("peach-probe-test-ssid", "wlan0"), "connect", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::id("wlan0", "peach-probe-test-ssid"), "id", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::ip("wlan0"), "ip", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::modify("peach-probe-test-ssid", "wlan0", "test-pass2"), "modify", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::ping(), "ping", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::reconfigure(), "reconfigure", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::reconnect(), "reconnect", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::rssi("wlan0"), "rssi", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::rssi_percent("wlan0"), "rssi-percent", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::disable("peach-probe-test-ssid", "wlan0"), "disable", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::disconnect("wlan0"), "disconnect", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::delete("peach-probe-test-ssid", "wlan0"), "delete", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::save(), "save", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::saved_networks(), "saved_networks", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::ssid("wlan0"), "ssid", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::state("wlan0"), "state", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::status("wlan0"), "status", &mut result);
+        PeachProbe::probe_peach_endpoint(network_client::traffic("wlan0"), "traffic", &mut result);
 
         // save result
         self.results.push(result)
     }
 
     /// probes all endpoints on the peach-oled microservice
-    pub fn oled(&mut self) {
+    pub fn peach_oled(&mut self) {
         println!("[ probing peach-oled microservice ]");
 
         // instantiate ProbeResult

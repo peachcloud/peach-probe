@@ -24,10 +24,10 @@ use crate::probe::PeachProbe;
  arg_enum! {
      #[derive(Debug)]
      enum Microservice {
-         Oled,
-         Network,
-         Stats,
-         Menu,
+         PeachOled,
+         PeachNetwork,
+         PeachStats,
+         PeachMenu,
      }
  }
 
@@ -48,28 +48,28 @@ fn main() {
     // if not arguments were provided, then we probe all services
     if opt.services.is_empty() {
         services = vec![
-            Microservice::Network,
-            Microservice::Oled,
-            Microservice::Stats,
+            Microservice::PeachNetwork,
+            Microservice::PeachOled,
+            Microservice::PeachStats,
         ]
     } else {
         services = opt.services;
     }
 
     // instantiate the probe
-    let mut peach_probe: PeachProbe = PeachProbe::new();
+    let mut probe: PeachProbe = PeachProbe::new();
 
     // iterate through services and run probe tests on them
     for service in services {
         match service {
-            Microservice::Stats => {
-                peach_probe.stats();
+            Microservice::PeachStats => {
+                probe.peach_stats();
             },
-            Microservice::Oled => {
-                peach_probe.oled();
+            Microservice::PeachOled => {
+                probe.peach_oled();
             },
-            Microservice::Network => {
-                peach_probe.network();
+            Microservice::PeachNetwork => {
+                probe.peach_network();
             },
             _ => info!("probe for service {:?} not yet implemented", service),
         }
@@ -77,7 +77,7 @@ fn main() {
 
     // final report of how many microservices returned successes and failures
     println!("[ generating report ]");
-    for result in peach_probe.results {
+    for result in probe.results {
         let num_failures = result.failures.len();
         let report;
         if num_failures == 0 {
