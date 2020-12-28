@@ -55,6 +55,60 @@ impl PeachProbe {
         }
     }
 
+    /// helper function for probing an endpoint on a peach microservice which expects a particular JsonRPCCore Error
+    fn probe_assert_error_endpoint<T>(
+        endpoint_result: Result<T, PeachError>,
+        endpoint_name: &str,
+        expected_error_code: i32,
+        expected_error_message: &str,
+        result: &mut ProbeResult
+    ) {
+       match endpoint_result {
+            Ok(_) => {
+                eprintln!("++ this endpoint should not return successfully during peach-probe, something is strange");
+                result.failures.push(endpoint_name.to_string());
+            }
+            Err(e) => {
+                match e {
+                    PeachError::JsonRpcCore(e) => {
+                        match e.kind() {
+                            // this is the expected error, all other errors are unexpected
+                            jsonrpc_client_core::ErrorKind::JsonRpcError(err) => {
+                                println!("code: {:?}", err.code);
+                                match err.code {
+                                    jsonrpc_core::types::error::ErrorCode::ServerError(code_number) => {
+                                        println!("++ matching code number: {:?}", code_number);
+                                        result.successes.push(endpoint_name.to_string());
+                                    }
+                                    _ => {
+                                        eprintln!("++ {} endpoint is offline", endpoint_name);
+                                        eprintln!("Returned unexpected JsonRpcCore error: {:#?}\n", e);
+                                        result.failures.push(endpoint_name.to_string());
+                                    }
+                                }
+                            }
+                            _ => {
+                                eprintln!("++ {} endpoint is offline", endpoint_name);
+                                eprintln!("Returned unexpected JsonRpcCore error: {:#?}\n", e);
+                                result.failures.push(endpoint_name.to_string());
+                            }
+                        }
+                    },
+                    PeachError::JsonRpcHttp(e) => {
+                        eprintln!("++ {} endpoint is offline", endpoint_name);
+                        eprintln!("Returned JsonRpcHTTP error: {:#?}\n", e);
+                        result.failures.push(endpoint_name.to_string());
+                    },
+                    PeachError::Serde(_) => {
+                        eprintln!("++ {} endpoint is offline", endpoint_name);
+                        eprintln!("Returned Serde Json serialization error\n");
+                        result.failures.push(endpoint_name.to_string());
+                    }
+                }
+            }
+        }
+    }
+
     /// probes all endpoints on the peach-stats microservice
     pub fn peach_stats(&mut self) {
         println!("[ probing peach-stats microservice ]");
@@ -81,30 +135,36 @@ impl PeachProbe {
         // instantiate ProbeResult
         let mut result = ProbeResult::new("peach-network".to_string());
 
-        // probe endpoints
-        PeachProbe::probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::activate_client(), "activate_client", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::add("peach-probe-test-ssid", "peach-probe-test-pass"), "add", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::available_networks("wlan0"), "available_networks", &mut result);
+        // probe endpoints which should successfully return if online
+//        PeachProbe::probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::activate_client(), "activate_client", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::add("peach-probe-test-ssid", "peach-probe-test-pass"), "add", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::available_networks("wlan0"), "available_networks", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::id("wlan0", "peach-probe-test-ssid"), "id", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::ip("wlan0"), "ip", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::ping(), "ping", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::reconfigure(), "reconfigure", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::saved_networks(), "saved_networks", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::state("wlan0"), "state", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::traffic("wlan0"), "traffic", &mut result);
 
-        PeachProbe::probe_peach_endpoint(network_client::connect("peach-probe-test-ssid", "wlan0"), "connect", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::id("wlan0", "peach-probe-test-ssid"), "id", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::ip("wlan0"), "ip", &mut result);
-//        PeachProbe::probe_peach_endpoint(network_client::modify("peach-probe-test-ssid", "wlan0", "test-pass2"), "modify", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::ping(), "ping", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::reconfigure(), "reconfigure", &mut result);
-//        PeachProbe::probe_peach_endpoint(network_client::reconnect(), "reconnect", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::rssi("wlan0"), "rssi", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::rssi_percent("wlan0"), "rssi-percent", &mut result);
-//        PeachProbe::probe_peach_endpoint(network_client::disable("peach-probe-test-ssid", "wlan0"), "disable", &mut result);
-//        PeachProbe::probe_peach_endpoint(network_client::disconnect("wlan0"), "disconnect", &mut result);
-//        PeachProbe::probe_peach_endpoint(network_client::delete("peach-probe-test-ssid", "wlan0"), "delete", &mut result);
-//        PeachProbe::probe_peach_endpoint(network_client::save(), "save", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::saved_networks(), "saved_networks", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::ssid("wlan0"), "ssid", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::state("wlan0"), "state", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::status("wlan0"), "status", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::traffic("wlan0"), "traffic", &mut result);
+        // if online, the following functions should return an error which we should catch and confirm
+        PeachProbe::probe_assert_error_endpoint(
+            network_client::connect("peach-probe-test-ssid", "wlan0"),
+            "connect",
+            -32027,
+            "Failed to connect to network wlan0 for peach-probe-test-ssid",
+            &mut result
+        );
+//        PeachProbe::probe_assert_error_endpoint(network_client::ssid("wlan0"), "ssid", &mut result);
+//        PeachProbe::probe_assert_error_endpoint(network_client::disable("peach-probe-test-ssid", "wlan0"), "disable", &mut result);
+
+        // the following functions should return an error which we should catch and confirm,
+        // but waiting for PR to peach-network to provide more verbose error messages for these endpoints
+//        PeachProbe::probe_peach_endpoint(network_client::status("wlan0"), "status", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::rssi("wlan0"), "rssi", &mut result);
+//        PeachProbe::probe_peach_endpoint(network_client::rssi_percent("wlan0"), "rssi-percent", &mut result);
+
 
         // save result
         self.results.push(result)
