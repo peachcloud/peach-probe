@@ -60,7 +60,7 @@ impl PeachProbe {
         println!("[ probing peach-stats microservice ]");
 
         // instantiate ProbeResult
-        let mut result = ProbeResult::new("stats".to_string());
+        let mut result = ProbeResult::new("peach-stats".to_string());
 
         // probe endpoints
         PeachProbe::probe_peach_endpoint(stats_client::cpu_stats_percent(), "cpu_stats_percent", &mut result);
@@ -79,7 +79,7 @@ impl PeachProbe {
         println!("[ probing peach-network microservice ]");
 
         // instantiate ProbeResult
-        let mut result = ProbeResult::new("stats".to_string());
+        let mut result = ProbeResult::new("peach-network".to_string());
 
         // probe endpoints
         PeachProbe::probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
@@ -115,7 +115,7 @@ impl PeachProbe {
         println!("[ probing peach-oled microservice ]");
 
         // instantiate ProbeResult
-        let mut result = ProbeResult::new("oled".to_string());
+        let mut result = ProbeResult::new("peach-oled".to_string());
 
         // probe endpoints
         PeachProbe::probe_peach_endpoint(oled_client::ping(), "ping", &mut result);

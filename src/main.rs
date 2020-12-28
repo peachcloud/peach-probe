@@ -24,9 +24,9 @@ use crate::probe::PeachProbe;
  arg_enum! {
      #[derive(Debug)]
      enum Microservice {
-         PeachOled,
-         PeachNetwork,
-         PeachStats,
+         Peach_Oled,
+         Peach_Network,
+         Peach_Stats,
          PeachMenu,
      }
  }
@@ -48,9 +48,9 @@ fn main() {
     // if not arguments were provided, then we probe all services
     if opt.services.is_empty() {
         services = vec![
-            Microservice::PeachNetwork,
-            Microservice::PeachOled,
-            Microservice::PeachStats,
+            Microservice::Peach_Network,
+            Microservice::Peach_Oled,
+            Microservice::Peach_Stats,
         ]
     } else {
         services = opt.services;
@@ -62,13 +62,13 @@ fn main() {
     // iterate through services and run probe tests on them
     for service in services {
         match service {
-            Microservice::PeachStats => {
+            Microservice::Peach_Stats => {
                 probe.peach_stats();
             },
-            Microservice::PeachOled => {
+            Microservice::Peach_Oled => {
                 probe.peach_oled();
             },
-            Microservice::PeachNetwork => {
+            Microservice::Peach_Network => {
                 probe.peach_network();
             },
             _ => info!("probe for service {:?} not yet implemented", service),
