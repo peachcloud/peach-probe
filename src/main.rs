@@ -83,14 +83,15 @@ fn main() {
         let report;
         if num_failures == 0 {
             report = format!(
-                "- {} microservice is online with all endpoints running.",
-                result.microservice
+                "- {} [version: {}] is online with all endpoints running.",
+                result.microservice,
+                result.version,
             );
             println!("{}", report);
         } else {
             report = format!(
-                "- {} microservice had {} endpoints that returned errors: {:?}",
-                result.microservice, num_failures, result.failures
+                "- {} [version: {}] had {} endpoints that returned errors: {:?}",
+                result.microservice, result.version, num_failures, result.failures
             );
             eprintln!("{}", report);
         }

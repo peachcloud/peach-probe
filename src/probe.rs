@@ -5,12 +5,18 @@ use peach_lib::stats_client;
 
 use crate::vars::PEACH_LOGO;
 
+// this struct stores the results of probing a particular microservice
 pub struct ProbeResult {
+    // string of the name of the service
     pub microservice: String,
+    // string of the version of this service currently installed
+    pub version: String,
     // vector of names of endpoints which had errors
     pub failures: Vec<String>,
     // vector of names of endpoints which returned successfully
     pub successes: Vec<String>,
+    // bool which returns true if systemctl status says service is running
+    pub is_running: bool,
 }
 
 impl ProbeResult {
@@ -19,10 +25,14 @@ impl ProbeResult {
             microservice,
             failures: Vec::new(),
             successes: Vec::new(),
+            is_running: false,
+            version: "".to_string(),
         }
     }
 }
 
+// this struct implements probes for all microservices and data structures
+// for storing the results of all probes
 pub struct PeachProbe {
     pub results: Vec<ProbeResult>,
     pub verbose: bool,
@@ -34,6 +44,24 @@ impl PeachProbe {
             results: Vec::new(),
             verbose,
         }
+    }
+
+
+    // helper function which gets the version of the microservice running using apt-get
+    fn get_service_version(service: &str) -> String {
+        let output = std::process::Command::new("/usr/bin/apt")
+        .arg("list")
+        .arg(service)
+        .output()
+        .expect("failed");
+        // TODO: use a regex here to just get the version number from this string
+        let command_output = std::str::from_utf8(&output.stdout).unwrap().to_string();
+        // use a regex to get the version number from the string
+        let re = Regex::new(r"^(\d+)-(\d+) ([a-z]): ([a-z]+)").unwrap();
+        for cap in re.captures_iter(command_output) {
+            println!("cap1: {}, cap2: {}", &cap[1], &cap[2]);
+        }
+        "version-xyz"
     }
 
     /// helper function for probing an endpoint on a peach microservice and collecting errors for a final report
@@ -126,6 +154,8 @@ impl PeachProbe {
         // instantiate ProbeResult
         let mut result = ProbeResult::new("peach-stats".to_string());
 
+        // get version of service
+
         // probe endpoints
         self.probe_peach_endpoint(
             stats_client::cpu_stats_percent(),
@@ -214,6 +244,9 @@ impl PeachProbe {
 
         // instantiate ProbeResult
         let mut result = ProbeResult::new("peach-oled".to_string());
+
+        // get current installed version of service using apt-get
+        result.version = PeachProbe::get_service_version("peach-oled").to_string();
 
         // probe endpoints
         self.probe_peach_endpoint(oled_client::ping(), "ping", &mut result);
