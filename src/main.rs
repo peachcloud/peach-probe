@@ -23,11 +23,13 @@ use crate::probe::PeachProbe;
 
  arg_enum! {
      #[derive(Debug)]
+     #[allow(non_camel_case_types)]
+     #[allow(clippy::enum_variant_names)]
      enum Microservice {
          Peach_Oled,
          Peach_Network,
          Peach_Stats,
-         PeachMenu,
+         Peach_Menu,
      }
  }
 
@@ -57,7 +59,7 @@ fn main() {
     }
 
     // instantiate the probe
-    let mut probe: PeachProbe = PeachProbe::new();
+    let mut probe: PeachProbe = PeachProbe::new(opt.verbose);
 
     // iterate through services and run probe tests on them
     for service in services {
@@ -81,10 +83,10 @@ fn main() {
         let num_failures = result.failures.len();
         let report;
         if num_failures == 0 {
-            report = format!("++ {} microservice is online with all endpoints running: {:?}", result.microservice, result.successes);
+            report = format!("- {} microservice is online with all endpoints running.", result.microservice);
             println!("{}", report);
         } else {
-            report = format!("++ {} microservice had {} endpoints that returned errors: {:?}", result.microservice, num_failures, result.failures);
+            report = format!("- {} microservice had {} endpoints that returned errors: {:?}", result.microservice, num_failures, result.failures);
             eprintln!("{}", report);
         }
     }

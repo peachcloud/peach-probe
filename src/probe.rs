@@ -25,21 +25,25 @@ impl ProbeResult {
 
 pub struct PeachProbe {
     pub results: Vec<ProbeResult>,
+    pub verbose: bool
 }
 
 
 impl PeachProbe {
-    pub fn new() -> PeachProbe {
+    pub fn new(verbose: bool) -> PeachProbe {
         PeachProbe {
             results: Vec::new(),
+            verbose,
         }
     }
 
     /// helper function for probing an endpoint on a peach microservice and collecting errors for a final report
-    fn probe_peach_endpoint<T>(endpoint_result: Result<T, PeachError>, endpoint_name: &str, result: &mut ProbeResult) {
+    fn probe_peach_endpoint<T>(&mut self, endpoint_result: Result<T, PeachError>, endpoint_name: &str, result: &mut ProbeResult) {
         match endpoint_result {
             Ok(_) => {
-                println!("++ {} endpoint is online", endpoint_name);
+                if self.verbose {
+                    println!("++ {} endpoint is online", endpoint_name);
+                }
                 result.successes.push(endpoint_name.to_string());
             }
             Err(e) => {
@@ -57,10 +61,10 @@ impl PeachProbe {
 
     /// helper function for probing an endpoint on a peach microservice which expects a particular JsonRPCCore Error
     fn probe_assert_error_endpoint<T>(
+        &mut self,
         endpoint_result: Result<T, PeachError>,
         endpoint_name: &str,
         expected_error_code: i64,
-        expected_error_message: &str,
         result: &mut ProbeResult
     ) {
        match endpoint_result {
@@ -74,8 +78,10 @@ impl PeachProbe {
                         match e.kind() {
                             // this is the expected error, all other errors are unexpected
                             jsonrpc_client_core::ErrorKind::JsonRpcError(err) => {
-                                if  (err.code.code() == expected_error_code && err.message == expected_error_message) {
-                                    println!("++ endpoint is online");
+                                if  err.code.code() == expected_error_code {
+                                    if self.verbose {
+                                        println!("++ endpoint is online");
+                                    }
                                     result.successes.push(endpoint_name.to_string());
                                 }
                                 else {
@@ -114,12 +120,12 @@ impl PeachProbe {
         let mut result = ProbeResult::new("peach-stats".to_string());
 
         // probe endpoints
-        PeachProbe::probe_peach_endpoint(stats_client::cpu_stats_percent(), "cpu_stats_percent", &mut result);
-        PeachProbe::probe_peach_endpoint(stats_client::load_average(), "load_average", &mut result);
-        PeachProbe::probe_peach_endpoint(stats_client::disk_usage(), "disk_usage", &mut result);
-        PeachProbe::probe_peach_endpoint(stats_client::mem_stats(), "mem_stats", &mut result);
-        PeachProbe::probe_peach_endpoint(stats_client::ping(), "ping", &mut result);
-        PeachProbe::probe_peach_endpoint(stats_client::uptime(), "uptime", &mut result);
+        self.probe_peach_endpoint(stats_client::cpu_stats_percent(), "cpu_stats_percent", &mut result);
+        self.probe_peach_endpoint(stats_client::load_average(), "load_average", &mut result);
+        self.probe_peach_endpoint(stats_client::disk_usage(), "disk_usage", &mut result);
+        self.probe_peach_endpoint(stats_client::mem_stats(), "mem_stats", &mut result);
+        self.probe_peach_endpoint(stats_client::ping(), "ping", &mut result);
+        self.probe_peach_endpoint(stats_client::uptime(), "uptime", &mut result);
 
         // save result
         self.results.push(result)
@@ -133,40 +139,39 @@ impl PeachProbe {
         let mut result = ProbeResult::new("peach-network".to_string());
 
         // probe endpoints which should successfully return if online
-        PeachProbe::probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::activate_client(), "activate_client", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::add("peach-probe-test-ssid", "peach-probe-test-pass"), "add", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::available_networks("wlan0"), "available_networks", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::id("wlan0", "peach-probe-test-ssid"), "id", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::ip("wlan0"), "ip", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::ssid("wlan0"), "ssid", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::ping(), "ping", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::reconfigure(), "reconfigure", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::saved_networks(), "saved_networks", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::state("wlan0"), "state", &mut result);
-        PeachProbe::probe_peach_endpoint(network_client::traffic("wlan0"), "traffic", &mut result);
+        self.probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
+        self.probe_peach_endpoint(network_client::activate_client(), "activate_client", &mut result);
+        self.probe_peach_endpoint(network_client::add("peach-probe-test-ssid", "peach-probe-test-pass"), "add", &mut result);
+        self.probe_peach_endpoint(network_client::available_networks("wlan0"), "available_networks", &mut result);
+        self.probe_peach_endpoint(network_client::id("wlan0", "peach-probe-test-ssid"), "id", &mut result);
+        self.probe_peach_endpoint(network_client::ip("wlan0"), "ip", &mut result);
+        self.probe_peach_endpoint(network_client::ssid("wlan0"), "ssid", &mut result);
+        self.probe_peach_endpoint(network_client::ping(), "ping", &mut result);
+        self.probe_peach_endpoint(network_client::reconfigure(), "reconfigure", &mut result);
+        self.probe_peach_endpoint(network_client::saved_networks(), "saved_networks", &mut result);
+        self.probe_peach_endpoint(network_client::state("wlan0"), "state", &mut result);
+        self.probe_peach_endpoint(network_client::traffic("wlan0"), "traffic", &mut result);
 
         // if online, the following functions should return an error which we should catch and confirm
-        PeachProbe::probe_assert_error_endpoint(
+        self.probe_assert_error_endpoint(
             network_client::connect("peach-probe-test-ssid", "wlan0"),
             "connect",
             -32027,
-            "Failed to connect to network wlan0 for peach-probe-test-ssid",
             &mut result
         );
-        PeachProbe::probe_assert_error_endpoint(
+        // change this to be confirm the correct error code
+        self.probe_assert_error_endpoint(
             network_client::disable("peach-probe-test-ssid", "wlan0"),
             "disable",
             -32013,
-            "Failed to open control interface for wpasupplicant: Address already in use (os error 98)",
             &mut result
         );
 
         // the following functions should return an error which we should catch and confirm,
         // but waiting for PR to peach-network to provide more verbose error messages for these endpoints
-//        PeachProbe::probe_peach_endpoint(network_client::status("wlan0"), "status", &mut result);
-//        PeachProbe::probe_peach_endpoint(network_client::rssi("wlan0"), "rssi", &mut result);
-//        PeachProbe::probe_peach_endpoint(network_client::rssi_percent("wlan0"), "rssi-percent", &mut result);
+//        self.probe_peach_endpoint(network_client::status("wlan0"), "status", &mut result);
+//        self.probe_peach_endpoint(network_client::rssi("wlan0"), "rssi", &mut result);
+//        self.probe_peach_endpoint(network_client::rssi_percent("wlan0"), "rssi-percent", &mut result);
 
 
         // save result
@@ -181,22 +186,22 @@ impl PeachProbe {
         let mut result = ProbeResult::new("peach-oled".to_string());
 
         // probe endpoints
-        PeachProbe::probe_peach_endpoint(oled_client::ping(), "ping", &mut result);
-        PeachProbe::probe_peach_endpoint(oled_client::write(0, 0, "Peach-probe display", "6x8"), "write", &mut result);
+        self.probe_peach_endpoint(oled_client::ping(), "ping", &mut result);
+        self.probe_peach_endpoint(oled_client::write(0, 0, "Peach-probe display", "6x8"), "write", &mut result);
 
         // probe draw endpoint
         let bytes = PEACH_LOGO.to_vec();
-        PeachProbe::probe_peach_endpoint(
+        self.probe_peach_endpoint(
             oled_client::draw(bytes, 64, 64, 32, 10),
             "draw", &mut result);
 
         // probe clear and flush after draw and write (so that there are no visual artifacts from peach-probe on the oled display)
-//        PeachProbe::probe_peach_endpoint(oled_client::clear(), "clear", &mut result);
-        PeachProbe::probe_peach_endpoint(oled_client::flush(), "flush", &mut result);
+//        self.probe_peach_endpoint(oled_client::clear(), "clear", &mut result);
+        self.probe_peach_endpoint(oled_client::flush(), "flush", &mut result);
 
         // test power off endpoint
-         PeachProbe::probe_peach_endpoint(oled_client::power(false), "power-off", &mut result);
-         PeachProbe::probe_peach_endpoint(oled_client::power(true), "power-on", &mut result);
+         self.probe_peach_endpoint(oled_client::power(false), "power-off", &mut result);
+         self.probe_peach_endpoint(oled_client::power(true), "power-on", &mut result);
 
         // save result
         self.results.push(result)
