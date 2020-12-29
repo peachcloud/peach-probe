@@ -3,6 +3,10 @@ use peach_lib::network_client;
 use peach_lib::oled_client;
 use peach_lib::stats_client;
 
+use std::error::Error;
+use regex::{Regex};
+
+use crate::error::ProbeError;
 use crate::vars::PEACH_LOGO;
 
 // this struct stores the results of probing a particular microservice
@@ -46,22 +50,35 @@ impl PeachProbe {
         }
     }
 
-
     // helper function which gets the version of the microservice running using apt-get
-    fn get_service_version(service: &str) -> String {
+    fn get_service_version_result(service: &str) -> Result<String, ProbeError> {
         let output = std::process::Command::new("/usr/bin/apt")
         .arg("list")
         .arg(service)
-        .output()
-        .expect("failed");
-        // TODO: use a regex here to just get the version number from this string
-        let command_output = std::str::from_utf8(&output.stdout).unwrap().to_string();
+        .output()?;
+        let command_output = std::str::from_utf8(&output.stdout)?;
         // use a regex to get the version number from the string
-        let re = Regex::new(r"^(\d+)-(\d+) ([a-z]): ([a-z]+)").unwrap();
-        for cap in re.captures_iter(command_output) {
-            println!("cap1: {}, cap2: {}", &cap[1], &cap[2]);
+        let re = Regex::new(r".*buster,now (\d+\.\d+\.\d+) arm64.*")?;
+        let cap = re.captures(command_output);
+        match cap {
+            Some(c) => {
+                let version = &c[1];
+                Ok(version.to_string())
+            },
+            None => {
+                Err(ProbeError::GetServiceVersionRegexMatchError)
+            }
         }
-        "version-xyz"
+    }
+
+    // helper function which gets the version of the microservice running using apt-get as a string
+    // if there is an error getting the version, it returns the string "Unknown"
+    fn get_service_version(service: &str) -> String {
+        let version_result = PeachProbe::get_service_version_result(service);
+        match version_result {
+            Ok(version) => version,
+            Err(_) => "Unknown".to_string()
+        }
     }
 
     /// helper function for probing an endpoint on a peach microservice and collecting errors for a final report
@@ -155,6 +172,7 @@ impl PeachProbe {
         let mut result = ProbeResult::new("peach-stats".to_string());
 
         // get version of service
+        result.version = PeachProbe::get_service_version("peach-stats").to_string();
 
         // probe endpoints
         self.probe_peach_endpoint(
@@ -178,6 +196,9 @@ impl PeachProbe {
 
         // instantiate ProbeResult
         let mut result = ProbeResult::new("peach-network".to_string());
+
+        // get current installed version of service using apt-get
+        result.version = PeachProbe::get_service_version("peach-network").to_string();
 
         // probe endpoints which should successfully return if online
         self.probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
@@ -228,12 +249,6 @@ impl PeachProbe {
             &mut result,
         );
 
-        // the following functions should return an error which we should catch and confirm,
-        // but waiting for PR to peach-network to provide more verbose error messages for these endpoints
-        //        self.probe_peach_endpoint(network_client::status("wlan0"), "status", &mut result);
-        //        self.probe_peach_endpoint(network_client::rssi("wlan0"), "rssi", &mut result);
-        //        self.probe_peach_endpoint(network_client::rssi_percent("wlan0"), "rssi-percent", &mut result);
-
         // save result
         self.results.push(result)
     }
@@ -265,7 +280,7 @@ impl PeachProbe {
         );
 
         // probe clear and flush after draw and write (so that there are no visual artifacts from peach-probe on the oled display)
-        //        self.probe_peach_endpoint(oled_client::clear(), "clear", &mut result);
+        self.probe_peach_endpoint(oled_client::clear(), "clear", &mut result);
         self.probe_peach_endpoint(oled_client::flush(), "flush", &mut result);
 
         // test power off endpoint

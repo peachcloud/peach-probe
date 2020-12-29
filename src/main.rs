@@ -5,6 +5,7 @@ use structopt::StructOpt;
 
 mod probe;
 mod vars;
+mod error;
 
 use crate::probe::PeachProbe;
 

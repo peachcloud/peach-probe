@@ -22,5 +22,6 @@ peach-lib = { git = "https://github.com/peachcloud/peach-lib", branch = "main" }
 #peach-lib = { path = "../peach-lib" }
 clap = "2.33.3"
 const_format = "0.2.10"
+regex = "1"
 
 

@@ -746,6 +746,7 @@ dependencies = [
  "jsonrpc-test",
  "log 0.4.11",
  "peach-lib",
+ "regex",
  "serde",
  "serde_derive",
  "serde_json",
