@@ -1,37 +1,36 @@
 use log::info;
 
-use structopt::StructOpt;
 use clap::arg_enum;
+use structopt::StructOpt;
 
 mod probe;
 mod vars;
 
 use crate::probe::PeachProbe;
 
-
 #[derive(StructOpt, Debug)]
- #[structopt(
-     name = "peach-probe",
-     about = "a CLI tool for contract testing of the public API's exposed by PeachCloud microservices"
- )]
- struct Opt {
-     #[structopt(short, long)]
-     verbose: bool,
-     #[structopt(possible_values = &Microservice::variants(), case_insensitive = true)]
-     services: Vec<Microservice>,
- }
+#[structopt(
+    name = "peach-probe",
+    about = "a CLI tool for contract testing of the public API's exposed by PeachCloud microservices"
+)]
+struct Opt {
+    #[structopt(short, long)]
+    verbose: bool,
+    #[structopt(possible_values = &Microservice::variants(), case_insensitive = true)]
+    services: Vec<Microservice>,
+}
 
- arg_enum! {
-     #[derive(Debug)]
-     #[allow(non_camel_case_types)]
-     #[allow(clippy::enum_variant_names)]
-     enum Microservice {
-         Peach_Oled,
-         Peach_Network,
-         Peach_Stats,
-         Peach_Menu,
-     }
- }
+arg_enum! {
+    #[derive(Debug)]
+    #[allow(non_camel_case_types)]
+    #[allow(clippy::enum_variant_names)]
+    enum Microservice {
+        Peach_Oled,
+        Peach_Network,
+        Peach_Stats,
+        Peach_Menu,
+    }
+}
 
 fn main() {
     // initialize the logger
@@ -66,13 +65,13 @@ fn main() {
         match service {
             Microservice::Peach_Stats => {
                 probe.peach_stats();
-            },
+            }
             Microservice::Peach_Oled => {
                 probe.peach_oled();
-            },
+            }
             Microservice::Peach_Network => {
                 probe.peach_network();
-            },
+            }
             _ => info!("probe for service {:?} not yet implemented", service),
         }
     }
@@ -83,10 +82,16 @@ fn main() {
         let num_failures = result.failures.len();
         let report;
         if num_failures == 0 {
-            report = format!("- {} microservice is online with all endpoints running.", result.microservice);
+            report = format!(
+                "- {} microservice is online with all endpoints running.",
+                result.microservice
+            );
             println!("{}", report);
         } else {
-            report = format!("- {} microservice had {} endpoints that returned errors: {:?}", result.microservice, num_failures, result.failures);
+            report = format!(
+                "- {} microservice had {} endpoints that returned errors: {:?}",
+                result.microservice, num_failures, result.failures
+            );
             eprintln!("{}", report);
         }
     }
