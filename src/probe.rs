@@ -8,6 +8,7 @@ use regex::{Regex};
 
 use crate::error::ProbeError;
 use crate::vars::PEACH_LOGO;
+use crate::Microservice;
 
 // this struct stores the results of probing a particular microservice
 pub struct ProbeResult {
@@ -50,6 +51,41 @@ impl PeachProbe {
         }
     }
 
+    // probe any microservice
+    pub fn probe_service(&mut self, service: Microservice) {
+
+        // get string from enum
+        let service_name = format!("{:?}", service);
+        println!("service name: {:?}", service_name);
+
+        // instantiate ProbeResult
+        let mut result = ProbeResult::new(service_name);
+
+        // get version of service
+        result.version = PeachProbe::get_service_version("peach-network").to_string();
+
+        // check status of service
+        let status = PeachProbe::get_service_status("peach-network").unwrap();
+        result.is_running = status;
+
+        // save result
+        self.results.push(result);
+
+        // if its running, then probe the endpoints
+//        match service {
+//            Microservice::Peach_Stats => {
+//                probe.peach_stats();
+//            }
+//            Microservice::Peach_Oled => {
+//                probe.peach_oled();
+//            }
+//            Microservice::Peach_Network => {
+//                probe.peach_network();
+//            }
+//            _ => info!("probe for service {:?} not yet implemented", service),
+//        }
+    }
+
     // helper function which gets the version of the microservice running using apt-get
     fn get_service_version_result(service: &str) -> Result<String, ProbeError> {
         let output = std::process::Command::new("/usr/bin/apt")
@@ -69,6 +105,19 @@ impl PeachProbe {
                 Err(ProbeError::GetServiceVersionRegexMatchError)
             }
         }
+    }
+
+    // helper function to call systemctl status for service
+    pub fn get_service_status(service: &str) -> Result<bool, ProbeError> {
+        let output = std::process::Command::new("/usr/bin/systemctl")
+        .arg("status")
+        .arg(service)
+        .output()?;
+        println!("ouput: {:#?}", output);
+        let status = output.status;
+        // returns true if the service had an exist status of 0 (is running)
+        let is_running = status.success();
+        Ok(is_running)
     }
 
     // helper function which gets the version of the microservice running using apt-get as a string
@@ -174,6 +223,10 @@ impl PeachProbe {
         // get version of service
         result.version = PeachProbe::get_service_version("peach-stats").to_string();
 
+        // check status of service
+        let status = PeachProbe::get_service_status("peach-stats").unwrap();
+        result.is_running = status;
+
         // probe endpoints
         self.probe_peach_endpoint(
             stats_client::cpu_stats_percent(),
@@ -199,6 +252,9 @@ impl PeachProbe {
 
         // get current installed version of service using apt-get
         result.version = PeachProbe::get_service_version("peach-network").to_string();
+
+        // check status of service
+        let status = PeachProbe::get_service_status("peach-network");
 
         // probe endpoints which should successfully return if online
         self.probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);

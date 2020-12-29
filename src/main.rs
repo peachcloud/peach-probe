@@ -33,6 +33,12 @@ arg_enum! {
     }
 }
 
+impl Microservice {
+    pub fn to_string(self) -> String {
+        "tostring".to_string()
+    }
+}
+
 fn main() {
     // initialize the logger
     env_logger::init();
@@ -63,18 +69,7 @@ fn main() {
 
     // iterate through services and run probe tests on them
     for service in services {
-        match service {
-            Microservice::Peach_Stats => {
-                probe.peach_stats();
-            }
-            Microservice::Peach_Oled => {
-                probe.peach_oled();
-            }
-            Microservice::Peach_Network => {
-                probe.peach_network();
-            }
-            _ => info!("probe for service {:?} not yet implemented", service),
-        }
+        probe.probe_service(service);
     }
 
     // final report of how many microservices returned successes and failures
@@ -82,7 +77,7 @@ fn main() {
     for result in probe.results {
         let num_failures = result.failures.len();
         let report;
-        if num_failures == 0 {
+        if result.is_running {
             report = format!(
                 "- {} [version: {}] is online with all endpoints running.",
                 result.microservice,
