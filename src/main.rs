@@ -95,10 +95,9 @@ fn main() {
     println!("[ generating report ]");
     for result in probe.results {
         let num_failures = result.failures.len();
-        let num_successes = result.successes.len();
         let report;
         // if service is running according to systemctl status
-        if result.is_running == true {
+        if result.is_running {
             if num_failures == 0 {
                 report = format!(
                     "- {} [version: {}] is online.",
@@ -115,16 +114,22 @@ fn main() {
                 eprintln!("{}", report);
             }
         }
-        // if service is not running according systemctl status
+        // if service is not running according to systemctl status, print the service log
         else {
-            let error_message = match result.status_error {
-                Some(err) => format!("{:#?}", err),
-                None => "Unknown Error".to_string()
+            match result.service_log {
+                Some(service_log) => {
+                    report = format!(
+                        "- {} [version: {}] is offline, with log:\n {}",
+                        result.microservice, result.version, service_log
+                    );
+                }
+                None => {
+                    report = format!(
+                        "- {} [version: {}] is offline, log not found",
+                        result.microservice, result.version
+                    );
+                }
             };
-            report = format!(
-                "- {} [version: {}] failed to start, with error: {}",
-                result.microservice, result.version, error_message
-            );
             eprintln!("{}", report);
         }
     }

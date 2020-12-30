@@ -5,7 +5,6 @@ use peach_lib::stats_client;
 
 use log::info;
 use regex::Regex;
-use std::error::Error;
 
 use crate::error::ProbeError;
 use crate::vars::PEACH_LOGO;
@@ -23,11 +22,9 @@ pub struct ProbeResult {
     pub successes: Vec<String>,
     // bool which stores true if the service is running
     pub is_running: bool,
-    // status error which stores the error message from systemctl status if one was found
-    pub status_error: Option<ProbeError>,
+    // string which stores the tail of the log from journalctl -u service
+    pub service_log: Option<String>,
 }
-
-
 
 impl ProbeResult {
     fn new(microservice: &str) -> ProbeResult {
@@ -37,7 +34,7 @@ impl ProbeResult {
             successes: Vec::new(),
             is_running: false,
             version: "".to_string(),
-            status_error: None
+            service_log: None,
         }
     }
 }
@@ -57,7 +54,9 @@ impl PeachProbe {
         }
     }
 
-    // probe any microservice
+    /// probe any microservice, using systemctl status to see if the service is running
+    /// and testing endpoints for services which support this (peach-stats, peach-network, peach-oled)
+    /// for all other microservices this function just checks if the service is running
     pub fn probe_service(&mut self, service: Microservice) {
         // get package name from enum
         let service_name = Microservice::get_package_name(&service);
@@ -67,36 +66,44 @@ impl PeachProbe {
         let mut result = ProbeResult::new(&service_name);
 
         // get version of service
-        result.version = PeachProbe::get_service_version(&service_name).to_string();
+        result.version = PeachProbe::get_service_version(&service_name);
 
         // check status of service
         let status_result = PeachProbe::get_service_status(&service_name);
         match status_result {
             Ok(is_running) => {
                 result.is_running = is_running;
-                // TODO: figure out how to include error message here from journalctl
+                // if the service is not running, get the journalctl log of the service
+                if !is_running {
+                    let log_result = PeachProbe::get_service_log(&service_name);
+                    match log_result {
+                        Ok(log) => {
+                            result.service_log = Some(log);
+                        }
+                        Err(err) => {
+                            eprintln!("error getting log for {}: {:#?}", service_name, err);
+                        }
+                    }
+                }
             }
             Err(err) => {
                 result.is_running = false;
-                result.status_error = Some(err);
+                eprintln!(
+                    "error retrieving service status of {}: {:#?}",
+                    service_name, err
+                );
             }
         }
 
-        // probe endpoints for the serivce
+        // probe endpoints for the serivce if applicable
         let result = match service {
-            Microservice::Peach_Stats => {
-                self.peach_stats(result)
-            }
-            Microservice::Peach_Oled => {
-                self.peach_oled(result)
-            }
-            Microservice::Peach_Network => {
-                self.peach_network(result)
-            }
+            Microservice::Peach_Stats => self.peach_stats(result),
+            Microservice::Peach_Oled => self.peach_oled(result),
+            Microservice::Peach_Network => self.peach_network(result),
             _ => {
                 info!("probing endpoints not implemented for this service");
                 result
-            },
+            }
         };
 
         // save result
@@ -132,6 +139,20 @@ impl PeachProbe {
         // returns true if the service had an exist status of 0 (is running)
         let is_running = status.success();
         Ok(is_running)
+    }
+
+    /// helper function to get last 2 lines of journalctl log for service
+    pub fn get_service_log(service: &str) -> Result<String, ProbeError> {
+        let output = std::process::Command::new("/usr/bin/journalctl")
+            .arg("-u")
+            .arg(service)
+            .arg("-t")
+            .arg(service)
+            .arg("-n")
+            .arg("3")
+            .output()?;
+        let log_output = String::from_utf8(output.stdout)?;
+        Ok(log_output)
     }
 
     /// helper function which gets the version of the microservice running using apt-get as a string
@@ -248,7 +269,7 @@ impl PeachProbe {
     }
 
     /// probes all endpoints on peach-network microservice
-    pub fn peach_network(&mut self, mut result : ProbeResult) -> ProbeResult {
+    pub fn peach_network(&mut self, mut result: ProbeResult) -> ProbeResult {
         println!("[ probing peach-network microservice ]");
 
         // probe endpoints which should successfully return if online
