@@ -1,4 +1,3 @@
-
 #[derive(Debug)]
 pub enum ProbeError {
     GetServiceVersionRegexError(regex::Error),
@@ -24,6 +23,3 @@ impl From<std::io::Error> for ProbeError {
         ProbeError::GetServiceVersionAptError(err)
     }
 }
-
-
-

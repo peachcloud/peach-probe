@@ -3,9 +3,9 @@ use log::info;
 use clap::arg_enum;
 use structopt::StructOpt;
 
+mod error;
 mod probe;
 mod vars;
-mod error;
 
 use crate::probe::PeachProbe;
 
@@ -25,17 +25,32 @@ arg_enum! {
     #[derive(Debug)]
     #[allow(non_camel_case_types)]
     #[allow(clippy::enum_variant_names)]
-    enum Microservice {
+    pub enum Microservice {
         Peach_Oled,
         Peach_Network,
         Peach_Stats,
         Peach_Menu,
+        Peach_Web,
+        Peach_Buttons,
+        Peach_Monitor
     }
 }
 
 impl Microservice {
-    pub fn to_string(self) -> String {
-        "tostring".to_string()
+    /// get_package_name converts the microservice enum to a string representation
+    /// which can be used by systemctl and other tools which reference the package by name
+    /// we can't use std::fmt::Display because this is already used by arg_enum!
+    pub fn get_package_name(service: &Microservice) -> String {
+        let s = match service {
+            Microservice::Peach_Oled => "peach-oled",
+            Microservice::Peach_Network => "peach-network",
+            Microservice::Peach_Stats => "peach-stats",
+            Microservice::Peach_Menu => "peach-menu",
+            Microservice::Peach_Web => "peach-web",
+            Microservice::Peach_Monitor => "peach-monitor",
+            Microservice::Peach_Buttons => "peach-buttons",
+        };
+        s.to_string()
     }
 }
 
@@ -47,7 +62,7 @@ fn main() {
     let opt = Opt::from_args();
 
     // debugging what was parsed
-    info!("services: {:?}", opt.services);
+    info!("probing services: {:?}", opt.services);
     if opt.verbose {
         info!("using verbose mode")
     }
@@ -59,6 +74,10 @@ fn main() {
             Microservice::Peach_Network,
             Microservice::Peach_Oled,
             Microservice::Peach_Stats,
+            Microservice::Peach_Monitor,
+            Microservice::Peach_Web,
+            Microservice::Peach_Buttons,
+            Microservice::Peach_Menu,
         ]
     } else {
         services = opt.services;
@@ -76,18 +95,35 @@ fn main() {
     println!("[ generating report ]");
     for result in probe.results {
         let num_failures = result.failures.len();
+        let num_successes = result.successes.len();
         let report;
-        if result.is_running {
+        // if service is running according to systemctl status
+        if result.is_running == true {
+            if num_failures == 0 {
+                report = format!(
+                    "- {} [version: {}] is online.",
+                    result.microservice, result.version
+                );
+                println!("{}", report);
+            }
+            // even if its running, some endpoints could still return errors
+            else {
+                report = format!(
+                    "- {} [version: {}] is online but {} endpoints returned errors: {:?}",
+                    result.microservice, result.version, num_failures, result.failures
+                );
+                eprintln!("{}", report);
+            }
+        }
+        // if service is not running according systemctl status
+        else {
+            let error_message = match result.status_error {
+                Some(err) => format!("{:#?}", err),
+                None => "Unknown Error".to_string()
+            };
             report = format!(
-                "- {} [version: {}] is online with all endpoints running.",
-                result.microservice,
-                result.version,
-            );
-            println!("{}", report);
-        } else {
-            report = format!(
-                "- {} [version: {}] had {} endpoints that returned errors: {:?}",
-                result.microservice, result.version, num_failures, result.failures
+                "- {} [version: {}] failed to start, with error: {}",
+                result.microservice, result.version, error_message
             );
             eprintln!("{}", report);
         }
