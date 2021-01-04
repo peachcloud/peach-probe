@@ -305,7 +305,7 @@ impl PeachProbe {
         self.probe_peach_endpoint(network_client::state("wlan0"), "state", &mut result);
         self.probe_peach_endpoint(network_client::traffic("wlan0"), "traffic", &mut result);
         self.probe_peach_endpoint(
-            network_client::add("wlan0", "peach-probe-test-ssid"),
+            network_client::forget("wlan0", "peach-probe-test-ssid"),
             "forget",
             &mut result,
         );
