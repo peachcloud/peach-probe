@@ -5,6 +5,7 @@ use peach_lib::stats_client;
 
 use log::info;
 use regex::Regex;
+use std::process::Command;
 
 use crate::error::ProbeError;
 use crate::vars::PEACH_LOGO;
@@ -60,7 +61,7 @@ impl PeachProbe {
     pub fn probe_service(&mut self, service: Microservice) {
         // get package name from enum
         let service_name = Microservice::get_package_name(&service);
-        println!("service name: {:?}", service_name);
+        println!("[ probing {} ]", service_name);
 
         // instantiate ProbeResult
         let mut result = ProbeResult::new(&service_name);
@@ -112,7 +113,7 @@ impl PeachProbe {
 
     /// helper function which gets the version of the microservice running using apt-get
     fn get_service_version_result(service: &str) -> Result<String, ProbeError> {
-        let output = std::process::Command::new("/usr/bin/apt")
+        let output = Command::new("/usr/bin/apt")
             .arg("list")
             .arg(service)
             .output()?;
@@ -131,7 +132,7 @@ impl PeachProbe {
 
     /// helper function to call systemctl status for service
     pub fn get_service_status(service: &str) -> Result<bool, ProbeError> {
-        let output = std::process::Command::new("/usr/bin/systemctl")
+        let output = Command::new("/usr/bin/systemctl")
             .arg("status")
             .arg(service)
             .output()?;
@@ -143,7 +144,7 @@ impl PeachProbe {
 
     /// helper function to get last 2 lines of journalctl log for service
     pub fn get_service_log(service: &str) -> Result<String, ProbeError> {
-        let output = std::process::Command::new("/usr/bin/journalctl")
+        let output = Command::new("/usr/bin/journalctl")
             .arg("-u")
             .arg(service)
             .arg("-t")
@@ -250,7 +251,6 @@ impl PeachProbe {
 
     /// probes all endpoints on the peach-stats microservice
     pub fn peach_stats(&mut self, mut result: ProbeResult) -> ProbeResult {
-        println!("[ probing peach-stats microservice ]");
 
         // probe endpoints
         self.probe_peach_endpoint(
@@ -270,7 +270,6 @@ impl PeachProbe {
 
     /// probes all endpoints on peach-network microservice
     pub fn peach_network(&mut self, mut result: ProbeResult) -> ProbeResult {
-        println!("[ probing peach-network microservice ]");
 
         // probe endpoints which should successfully return if online
         self.probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
@@ -305,6 +304,11 @@ impl PeachProbe {
         );
         self.probe_peach_endpoint(network_client::state("wlan0"), "state", &mut result);
         self.probe_peach_endpoint(network_client::traffic("wlan0"), "traffic", &mut result);
+        self.probe_peach_endpoint(
+            network_client::add("wlan0", "peach-probe-test-ssid"),
+            "forget",
+            &mut result,
+        );
 
         // if online, the following functions should return an error which we should catch and confirm
         self.probe_assert_error_endpoint(
@@ -327,12 +331,16 @@ impl PeachProbe {
 
     /// probes all endpoints on the peach-oled microservice
     pub fn peach_oled(&mut self, mut result: ProbeResult) -> ProbeResult {
-        println!("[ probing peach-oled microservice ]");
 
         // probe endpoints
         self.probe_peach_endpoint(oled_client::ping(), "ping", &mut result);
+
+        // probe clear and flush
+        self.probe_peach_endpoint(oled_client::clear(), "clear", &mut result);
+        self.probe_peach_endpoint(oled_client::flush(), "flush", &mut result);
+
         self.probe_peach_endpoint(
-            oled_client::write(0, 0, "Peach-probe display", "6x8"),
+            oled_client::write(0, 0, "peach-probe success", "6x8"),
             "write",
             &mut result,
         );
@@ -345,8 +353,7 @@ impl PeachProbe {
             &mut result,
         );
 
-        // probe clear and flush after draw and write (so that there are no visual artifacts from peach-probe on the oled display)
-        self.probe_peach_endpoint(oled_client::clear(), "clear", &mut result);
+        // probe flush
         self.probe_peach_endpoint(oled_client::flush(), "flush", &mut result);
 
         // test power off endpoint
