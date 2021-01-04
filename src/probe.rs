@@ -219,6 +219,7 @@ impl PeachProbe {
                                 if err.code.code() == expected_error_code {
                                     if self.verbose {
                                         println!("++ endpoint is online");
+                                        println!("++ returned error: {:#?}", err);
                                     }
                                     result.successes.push(endpoint_name.to_string());
                                 } else {
@@ -337,8 +338,6 @@ impl PeachProbe {
 
         // probe clear and flush
         self.probe_peach_endpoint(oled_client::clear(), "clear", &mut result);
-        self.probe_peach_endpoint(oled_client::flush(), "flush", &mut result);
-
         self.probe_peach_endpoint(
             oled_client::write(0, 0, "peach-probe success", "6x8"),
             "write",
@@ -353,7 +352,7 @@ impl PeachProbe {
             &mut result,
         );
 
-        // probe flush
+        // just clear at the end without flush so that state of peach-oled is not changed
         self.probe_peach_endpoint(oled_client::flush(), "flush", &mut result);
 
         // test power off endpoint
