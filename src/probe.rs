@@ -189,7 +189,6 @@ impl PeachProbe {
                     PeachError::JsonRpcCore(e) => {
                         eprintln!("Returned JsonRpcCore error: {:#?}\n", e)
                     }
-                    // QUESTION: PeachError::Serde does not implement .description -- should we show a message in another way?
                     PeachError::Serde(_) => eprintln!("Returned Serde Json serialization error\n"),
                 }
                 result.failures.push(endpoint_name.to_string());
@@ -218,8 +217,8 @@ impl PeachProbe {
                             jsonrpc_client_core::ErrorKind::JsonRpcError(err) => {
                                 if err.code.code() == expected_error_code {
                                     if self.verbose {
-                                        println!("++ endpoint is online");
-                                        println!("++ returned error: {:#?}", err);
+                                        println!("++ {} endpoint is online", endpoint_name);
+//                                        println!("++ returned error: {:#?}", err);
                                     }
                                     result.successes.push(endpoint_name.to_string());
                                 } else {
@@ -316,13 +315,6 @@ impl PeachProbe {
             network_client::connect("peach-probe-test-ssid", "wlan0"),
             "connect",
             -32027,
-            &mut result,
-        );
-        // change this to be confirm the correct error code
-        self.probe_assert_error_endpoint(
-            network_client::disable("peach-probe-test-ssid", "wlan0"),
-            "disable",
-            -32013,
             &mut result,
         );
 
