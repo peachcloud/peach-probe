@@ -16,7 +16,6 @@ extended-description = """\
 peach-probe is a diagnostic tool for probing PeachCloud microservices to evaluate their state" \
 and ensure correct API responses" \
 """
-maintainer-scripts="debian"
 assets = [
     ["target/release/peach-probe", "usr/bin/", "755"],
     ["README.md", "usr/share/doc/peach-probe/README", "644"],
