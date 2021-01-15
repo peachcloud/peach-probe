@@ -250,7 +250,6 @@ impl PeachProbe {
 
     /// probes all endpoints on the peach-stats microservice
     pub fn peach_stats(&mut self, mut result: ProbeResult) -> ProbeResult {
-
         // probe endpoints
         self.probe_peach_endpoint(
             stats_client::cpu_stats_percent(),
@@ -269,7 +268,6 @@ impl PeachProbe {
 
     /// probes all endpoints on peach-network microservice
     pub fn peach_network(&mut self, mut result: ProbeResult) -> ProbeResult {
-
         // probe endpoints which should successfully return if online
         self.probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
         self.probe_peach_endpoint(
@@ -323,7 +321,6 @@ impl PeachProbe {
 
     /// probes all endpoints on the peach-oled microservice
     pub fn peach_oled(&mut self, mut result: ProbeResult) -> ProbeResult {
-
         // probe endpoints
         self.probe_peach_endpoint(oled_client::ping(), "ping", &mut result);
 
