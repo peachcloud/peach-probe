@@ -218,7 +218,6 @@ impl PeachProbe {
                                 if err.code.code() == expected_error_code {
                                     if self.verbose {
                                         println!("++ {} endpoint is online", endpoint_name);
-//                                        println!("++ returned error: {:#?}", err);
                                     }
                                     result.successes.push(endpoint_name.to_string());
                                 } else {
