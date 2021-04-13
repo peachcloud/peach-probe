@@ -1,6 +1,6 @@
 # peach-probe
 
-![Generic badge](https://img.shields.io/badge/version-0.1.1-<COLOR>.svg)
+![Generic badge](https://img.shields.io/badge/version-0.1.2-<COLOR>.svg)
 
 Probe PeachCloud microservices to evaluate their state and ensure correct API responses.
 

@@ -31,8 +31,7 @@ arg_enum! {
         Peach_Stats,
         Peach_Menu,
         Peach_Web,
-        Peach_Buttons,
-        Peach_Monitor
+        Peach_Buttons
     }
 }
 
@@ -47,7 +46,6 @@ impl Microservice {
             Microservice::Peach_Stats => "peach-stats",
             Microservice::Peach_Menu => "peach-menu",
             Microservice::Peach_Web => "peach-web",
-            Microservice::Peach_Monitor => "peach-monitor",
             Microservice::Peach_Buttons => "peach-buttons",
         };
         s.to_string()
@@ -74,7 +72,6 @@ fn main() {
             Microservice::Peach_Network,
             Microservice::Peach_Oled,
             Microservice::Peach_Stats,
-            Microservice::Peach_Monitor,
             Microservice::Peach_Web,
             Microservice::Peach_Buttons,
             Microservice::Peach_Menu,

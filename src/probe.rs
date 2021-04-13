@@ -269,12 +269,6 @@ impl PeachProbe {
     /// probes all endpoints on peach-network microservice
     pub fn peach_network(&mut self, mut result: ProbeResult) -> ProbeResult {
         // probe endpoints which should successfully return if online
-        self.probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
-        self.probe_peach_endpoint(
-            network_client::activate_client(),
-            "activate_client",
-            &mut result,
-        );
         self.probe_peach_endpoint(
             network_client::add("peach-probe-test-ssid", "peach-probe-test-pass"),
             "add",
@@ -312,6 +306,14 @@ impl PeachProbe {
             network_client::connect("peach-probe-test-ssid", "wlan0"),
             "connect",
             -32027,
+            &mut result,
+        );
+
+        // probe switching between ap and client mode
+        self.probe_peach_endpoint(network_client::activate_ap(), "activate_ap", &mut result);
+        self.probe_peach_endpoint(
+            network_client::activate_client(),
+            "activate_client",
             &mut result,
         );
 

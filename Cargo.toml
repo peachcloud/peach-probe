@@ -1,6 +1,6 @@
 [package]
 name = "peach-probe"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Andrew Reid <gnomad@cryptolab.net>"]
 edition = "2018"
 description = "Diagnostic tool for probing PeachCloud microservices to evaluate their state and ensure correct API responses"
